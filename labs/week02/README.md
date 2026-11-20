@@ -76,7 +76,7 @@ With your partner, answer:
 python labs/week02/checkin_pipeline.py
 ```
 
-You see five kinds of log lines: `[extract]`, `[load]`, `[transform]`, `[check]` and `[serve]`, then a small table with present and absent counts for each section. Note the two **WARNING** lines; you investigate them in Part D.
+You see five kinds of log lines: `[extract]`, `[load]`, `[transform]`, `[check]` and `[serve]`, then a small summary table with the present, absent and percent present for each section. Note the two **WARNING** lines; you investigate them in Part D. The three `[serve]` lines say who gets the result; you use them in Part E, step 5.
 
 > **Screenshot 1 for the lab check:** the end of this first run, with the two WARNING lines, the summary table and the line `Pipeline finished: run by @<your GitHub name> ...`.
 
@@ -127,7 +127,7 @@ With your partner, explain both problems in one sentence each. The first problem
 
 ---
 
-## Part E: Fix it by re-running (about 15 minutes)
+## Part E: Fix it by re-running, then use the result (about 20 minutes)
 
 Raw data is never edited by hand. Instead, you change the **input** or the **rule** and run the whole pipeline again.
 
@@ -161,6 +161,16 @@ Every step uses `CREATE OR REPLACE`, so running the pipeline twice gives the sam
 4. Run your two queries from Part C again. What changed for you, and why?
 
 > **Screenshot 3 for the lab check:** your two find-yourself queries with your own student ID, their results and the lines `-- query run by @<your GitHub name> ...`. Not in the data because you joined the course after 7 November? Show the queries and the empty results.
+
+5. Now use what the pipeline served. A pipeline is not finished when the data sits in a database: **serving** hands the result to the people who use it, in a form they can use. The three `[serve]` lines of your last run name the users:
+
+| User | What the pipeline served | Try it |
+|---|---|---|
+| The teacher | the attendance list `labs/week02/data/output/attendance_2026-11-07.csv` | In the Explorer, open `labs/week02/data/output` and click the file. Find your own row (Ctrl+F). To open it in Excel, right-click the file → **Download**. |
+| The department | the summary `labs/week02/data/output/summary_2026-11-07.csv` | Open it the same way: one row per section, with `percent_present`. |
+| You | the table `attendance` | Your find-yourself query from step 4. |
+
+With your partner: the teacher and the department never run the pipeline; they only see these files. What would they have believed if the files from your first run in Part C were all they got?
 
 ---
 

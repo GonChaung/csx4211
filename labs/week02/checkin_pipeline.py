@@ -8,7 +8,7 @@ those raw form responses into an attendance list (P = present, A = absent):
   storage         load()       load them, unchanged, into tables in a DuckDB file
   transformation  transform()  clean the rows and give every student P or A
                   check()      data quality: which check-ins match nobody?
-  serving         serve()      write the attendance report as a CSV file
+  serving         serve()      give each user their data: the teacher, the department, you
 
 Data: the real check-ins of 7 November 2026 (names are not included). Because it is
 real class data, it is not on GitHub: download lab2_data.zip from MS Teams and unzip
@@ -36,7 +36,8 @@ DATA = HERE / "data"
 EXPORT_DIR = DATA / "export"  # the instructor's export from Google Sheets (lab2_data.zip in Teams)
 RAW_DIR = DATA / "raw"  # your landing zone
 DB_FILE = DATA / "week02.duckdb"
-REPORT_FILE = DATA / "output" / "attendance_2026-11-07.csv"
+REPORT_FILE = DATA / "output" / "attendance_2026-11-07.csv"  # for the teacher
+SUMMARY_FILE = DATA / "output" / "summary_2026-11-07.csv"  # for the department
 
 ROSTERS = {
     "v1": "class lists printed 6 Nov: CSX4211 only",
@@ -171,19 +172,30 @@ def check(con: duckdb.DuckDBPyConnection, id_from: str) -> None:
 
 
 def serve(con: duckdb.DuckDBPyConnection) -> None:
-    """Serving: publish the attendance list as a CSV file and show a summary."""
+    """Serving: give each user the data they need, in a form they can use."""
     REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    # 1. For the teacher: the attendance list as a CSV file, ready to open in Excel.
     con.execute(f"COPY attendance TO '{REPORT_FILE.as_posix()}' (HEADER, DELIMITER ',')")
-    print(f"[serve]     report written to {REPORT_FILE.relative_to(REPO).as_posix()}")
-    con.sql("""
+    rows_out = con.execute("SELECT count(*) FROM attendance").fetchone()[0]
+    print(f"[serve]     for the teacher:    {REPORT_FILE.relative_to(REPO).as_posix()} ({rows_out} rows)")
+    # 2. For the department: one row per section, with the percentage present.
+    con.execute("""
+        CREATE OR REPLACE TABLE summary AS
         SELECT section,
                count(*) FILTER (WHERE status = 'P') AS present,
                count(*) FILTER (WHERE status = 'A') AS absent,
-               count(*)                             AS students
+               count(*)                             AS students,
+               round(100 * count(*) FILTER (WHERE status = 'P') / count(*), 1) AS percent_present
         FROM attendance
         GROUP BY section
         ORDER BY section
-    """).show()
+    """)
+    con.execute(f"COPY summary TO '{SUMMARY_FILE.as_posix()}' (HEADER, DELIMITER ',')")
+    rows_out = con.execute("SELECT count(*) FROM summary").fetchone()[0]
+    print(f"[serve]     for the department: {SUMMARY_FILE.relative_to(REPO).as_posix()} ({rows_out} rows)")
+    # 3. For students: the attendance table itself, to look up your own row with SQL.
+    print("[serve]     for students:       table attendance, ask it with python labs/week02/query.py")
+    con.sql("SELECT * FROM summary").show()
 
 
 def signature() -> str:
